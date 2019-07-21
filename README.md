@@ -12,15 +12,17 @@ System provide reports:
 ## Usage
 
 ### Command-line flags
- - `-app_name` _string_ -- PostgreSQL application name (for logging) (default "payments")
- - `-database` _string_ -- PostgreSQL database name (default "payments")
- - `-db_address` _string_ -- Address to connect to PostgreSQL server (default "localhost:5432")
- - `-db_log` -- Switch for statements logging
- - `-db_password` _string_ -- PostgreSQL connection password
- - `-db_user` _string_ -- PostgreSQL connection user (default "postgres")
- - `-http_address` _string_ -- Http address for web server running (default "localhost:8080")
- - `-pool_size` _int_ -- PostgreSQL connection pool size (default 10)
 
+ - Web server:
+   - `-http_address` _string_ -- Http address for web server running (default "0.0.0.0:8080")
+ - Database:
+   - `-db_address` _string_ -- Address to connect to PostgreSQL server (default "localhost:5432")
+   - `-database` _string_ -- PostgreSQL database name (default "payments")
+   - `-db_user` _string_ -- PostgreSQL connection user (default "postgres")
+   - `-db_password` _string_ -- PostgreSQL connection password
+   - `-pool_size` _int_ -- PostgreSQL connection pool size (default 10)
+   - `-app_name` _string_ -- PostgreSQL application name (for logging) (default "payments")
+   - `-db_log` -- Switch for statements logging
 
 ## Dependencies
 
@@ -37,6 +39,17 @@ applications;
 
 ## How to set up
 
+### Step 1. Build docker image
+```bash
+ docker build -t payments-app .
+```
+
+### Step 2. Run it
+
+```bash
+docker run --rm -p 8099:8080 payments-app --db_address=192.168.0.1:5432 --db_password=${DB_PASSWORD}
+```
+
 ## How to run tests
 
 ```bash
@@ -52,3 +65,4 @@ golangci-lint run --presets=bugs,complexity,format
 
 ## How to start contributing
 
+TBA
