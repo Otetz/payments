@@ -3,19 +3,35 @@ package account
 import (
 	"context"
 
+	"github.com/asaskevich/govalidator"
+
 	"github.com/otetz/payments/errs"
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/shopspring/decimal"
 )
 
+func init() {
+	// How to serialize decimals to JSON
+	decimal.MarshalJSONWithoutQuotes = true
+
+	// Decimal validator plugin for govaidator
+	govalidator.CustomTypeTagMap.Set("decimal", func(i interface{}, context interface{}) bool {
+		switch i.(type) {
+		case decimal.Decimal:
+			return true
+		}
+		return false
+	})
+}
+
 type idField struct {
 	ID ID `json:"id" valid:"alphanum,required"`
 }
 
 type newAccountRequest struct {
-	ID       ID              `json:"id" valid:"alphanum,required"`
-	Currency Currency        `json:"currency" valid:"in(CurrencyUSD)"`
+	ID       ID              `json:"id" valid:"alphanum,required,stringlength(1|255)"`
+	Currency Currency        `json:"currency" valid:"in(USD)"`
 	Balance  decimal.Decimal `json:"balance,omitempty" valid:"decimal"`
 }
 

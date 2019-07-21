@@ -7,30 +7,24 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/asaskevich/govalidator"
-	"github.com/shopspring/decimal"
+	"github.com/go-pg/pg"
+	"github.com/otetz/payments/db"
 
 	"github.com/go-kit/kit/log"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	"github.com/otetz/payments/account"
-	"github.com/otetz/payments/inmem"
 	"github.com/otetz/payments/payment"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func init() {
-	// How to serialize decimals to JSON
-	decimal.MarshalJSONWithoutQuotes = true
+type dbLogger struct{}
 
-	// Decimal validator plugin for govaidator
-	govalidator.CustomTypeTagMap.Set("decimal", func(i interface{}, context interface{}) bool {
-		switch i.(type) {
-		case decimal.Decimal:
-			return true
-		}
-		return false
-	})
+func (d dbLogger) BeforeQuery(q *pg.QueryEvent) {
+}
+
+func (d dbLogger) AfterQuery(q *pg.QueryEvent) {
+	fmt.Println(q.FormattedQuery())
 }
 
 func main() {
@@ -39,9 +33,28 @@ func main() {
 	logger := log.NewLogfmtLogger(os.Stderr)
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 
+	conn := pg.Connect(&pg.Options{
+		Addr:            "localhost:5432", // TODO: enviflag
+		User:            "postgres",       // TODO: enviflag
+		Password:        "example",        // TODO: enviflag
+		Database:        "payments",       // TODO: enviflag
+		ApplicationName: "payments",       // TODO: enviflag
+		PoolSize:        10,               // TODO: enviflag
+	})
+	defer conn.Close()
+	conn.AddQueryHook(dbLogger{})
+
+	if err := db.CreateSchema(conn); err != nil {
+		_ = logger.Log("transport", "DB", "address", "172.18.0.2", "msg", err)
+	}
+
+	//var (
+	//	accounts = inmem.NewAccountRepository()
+	//	payments = inmem.NewPaymentRepository(accounts)
+	//)
 	var (
-		accounts = inmem.NewAccountRepository()
-		payments = inmem.NewPaymentRepository(accounts)
+		accounts = db.NewAccountRepository(conn)
+		payments = db.NewPaymentRepository(conn, accounts)
 	)
 
 	fieldKeys := []string{"method"}

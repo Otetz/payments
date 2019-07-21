@@ -16,11 +16,11 @@ type accountRepository struct {
 }
 
 // Store account in the repository
-func (r *accountRepository) Store(c *account.Account) error {
+func (r *accountRepository) Store(account *account.Account) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.accounts[c.ID] = c
+	r.accounts[account.ID] = account
 	return nil
 }
 
@@ -76,13 +76,14 @@ type paymentRepository struct {
 	accounts account.Repository
 }
 
-// Store payment in the repository.
-func (r *paymentRepository) Store(args ...*payment.Payment) error {
+// Store payments in the repository.
+func (r *paymentRepository) Store(payments ...*payment.Payment) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	for _, val := range args {
+	for _, val := range payments {
 		r.payments[val.ID] = val
+
 		a, err := r.accounts.Find(val.Account)
 		if err != nil {
 			return err

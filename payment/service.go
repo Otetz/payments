@@ -1,3 +1,4 @@
+// Package payment provides handlers for work with payments in the system.
 package payment
 
 import (
@@ -17,13 +18,13 @@ const (
 
 // Payment holding a money transfer between two accounts in the system.
 type Payment struct {
-	ID          uuid.UUID       `json:"-"`
-	Account     account.ID      `json:"account"`
-	Amount      decimal.Decimal `json:"amount"`
-	ToAccount   account.ID      `json:"to_account,omitempty"`
-	FromAccount account.ID      `json:"from_account,omitempty"`
-	Direction   Direction       `json:"direction"`
-	Deleted     bool            `json:"-"`
+	ID          uuid.UUID       `json:"-" sql:"id,pk,type:varchar(36)"`
+	Account     account.ID      `json:"account" sql:"type:varchar(255)" pg:"fk:base_account_id"`
+	Amount      decimal.Decimal `json:"amount" sql:"amount,notnull,type:'decimal(16,4)'"`
+	ToAccount   account.ID      `json:"to_account,omitempty" sql:"to_account,type:varchar(255)" pg:"fk:to_account_id"`
+	FromAccount account.ID      `json:"from_account,omitempty" sql:"from_account,type:varchar(255)" pg:"fk:from_account_id"`
+	Direction   Direction       `json:"direction" sql:"direction,notnull,type:varchar(16)"`
+	Deleted     bool            `json:"-" sql:"deleted,notnull"`
 }
 
 // Service is the interface that provides payment methods.
@@ -52,7 +53,7 @@ func (s *service) New(fromAccountID account.ID, amount decimal.Decimal, toAccoun
 	if err != nil {
 		return errs.ErrUnknownSourceAccount
 	}
-	if from.Balance.LessThan(amount) { // TODO: Balance need to be calculating property
+	if from.Balance.LessThan(amount) {
 		return errs.ErrInsufficientMoney
 	}
 	_, err = s.accounts.Find(toAccountID)
@@ -101,7 +102,7 @@ func NewService(payments Repository, accounts account.Repository) Service {
 
 // Repository interface for payment storing and operations.
 type Repository interface {
-	// Store payment in the repository.
+	// Store payments in the repository.
 	Store(payment ...*Payment) error
 
 	// Find payments list for an account.
