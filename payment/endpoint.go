@@ -16,9 +16,9 @@ type errorOnlyResponse struct {
 func (r errorOnlyResponse) ErrError() error { return r.Err }
 
 type newPaymentRequest struct {
-	FromAccountID account.ID      `json:"from" valid:"alphanum,required"`
+	FromAccountID account.ID      `json:"from" valid:"alphanum,required,stringlength(1|255)"`
 	Amount        decimal.Decimal `json:"amount" valid:"decimal,required"`
-	ToAccountID   account.ID      `json:"to" valid:"alphanum,required"`
+	ToAccountID   account.ID      `json:"to" valid:"alphanum,required,stringlength(1|255)"`
 }
 
 func makeNewPaymentEndpoint(s Service) endpoint.Endpoint {

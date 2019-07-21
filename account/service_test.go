@@ -113,6 +113,19 @@ func TestAccountApi(t *testing.T) {
 			Result: CaseResponse{"error": "validation error: id: .*? does not validate as alphanum"},
 		},
 		{
+			Name:   "new account:validation:id length",
+			Path:   EndpointURL,
+			Method: http.MethodPost,
+			Payload: CaseRequestPayload{
+				"id":       account.ID(strings.Repeat("abcd1234", 33)),
+				"balance":  decimal.NewFromFloat(99.99),
+				"currency": account.CurrencyUSD,
+			},
+			Status: http.StatusNotAcceptable,
+			Result: CaseResponse{"error": "validation error: id: " + strings.Repeat("abcd1234", 33) +
+				" does not validate as stringlength(1|255)"},
+		},
+		{
 			Name:   "delete account:normal flow",
 			Path:   EndpointURL + "/asd123",
 			Method: http.MethodDelete,

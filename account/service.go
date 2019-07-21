@@ -9,7 +9,7 @@ import (
 type Currency string
 
 const (
-	CurrencyUSD Currency = "CurrencyUSD"
+	CurrencyUSD Currency = "USD"
 )
 
 // ID type used for accounts identification.
@@ -17,15 +17,16 @@ type ID string
 
 // Account is a wallet in the system.
 type Account struct {
-	ID       ID              `json:"id"`
-	Balance  decimal.Decimal `json:"balance"`
-	Currency Currency        `json:"currency"`
-	Deleted  bool            `json:"-"`
+	TableName struct{}        `json:"-" sql:"select:accounts_view,alias:accounts"`
+	ID        ID              `json:"id" sql:"id,pk,type:varchar(255)"`
+	Balance   decimal.Decimal `json:"balance" sql:"balance,notnull,type:'decimal(16,4)'"`
+	Currency  Currency        `json:"currency" sql:"currency,notnull,type:varchar(3)"`
+	Deleted   bool            `json:"-" sql:"deleted,notnull"`
 }
 
 // Service is the interface that provides account methods.
 type Service interface {
-	// New registers a new account in the system, with zero Balance.
+	// New registers a new account in the system, with desired Balance.
 	New(id ID, currency Currency, balance decimal.Decimal) error
 
 	// Load returns a read model of an account.
@@ -60,13 +61,11 @@ func (s *service) Load(id ID) (*Account, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Calculate balance as initial + per payments
 	return a, nil
 }
 
 // LoadAll returns all accounts registered in the system.
 func (s *service) LoadAll() []*Account {
-	// TODO: Calculate balance as initial + per payments
 	return s.accounts.FindAll()
 }
 

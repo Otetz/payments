@@ -140,6 +140,32 @@ func TestPaymentApi(t *testing.T) {
 			Result: CaseResponse{"error": "Error decoding string '33,33': can't convert 33,33 to decimal"},
 		},
 		{
+			Name:   "new payment:incorrect source account",
+			Path:   EndpointURL,
+			Method: http.MethodPost,
+			Payload: CaseRequestPayload{
+				"from":   account.ID(strings.Repeat("abcd1234", 33)),
+				"amount": decimal.NewFromFloat(33.33),
+				"to":     account.ID("test2"),
+			},
+			Status: http.StatusNotAcceptable,
+			Result: CaseResponse{"error": "validation error: from: " + strings.Repeat("abcd1234", 33) +
+				" does not validate as stringlength(1|255)"},
+		},
+		{
+			Name:   "new payment:incorrect target account",
+			Path:   EndpointURL,
+			Method: http.MethodPost,
+			Payload: CaseRequestPayload{
+				"from":   account.ID("test2"),
+				"amount": decimal.NewFromFloat(33.33),
+				"to":     account.ID(strings.Repeat("abcd1234", 33)),
+			},
+			Status: http.StatusNotAcceptable,
+			Result: CaseResponse{"error": "validation error: to: " + strings.Repeat("abcd1234", 33) +
+				" does not validate as stringlength(1|255)"},
+		},
+		{
 			Name:   "new payment:validate account",
 			Path:   EndpointURL,
 			Method: http.MethodPost,
