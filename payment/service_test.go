@@ -3,8 +3,6 @@ package payment_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/otetz/payments/payment"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +11,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/google/uuid"
+	"github.com/otetz/payments/payment"
 
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-cmp/cmp"
@@ -55,8 +56,8 @@ func TestPaymentApi(t *testing.T) {
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 	httpLogger := log.With(logger, "component", "http")
 
-	payments := inmem.NewPaymentRepository()
 	accounts := inmem.NewAccountRepository()
+	payments := inmem.NewPaymentRepository(accounts)
 	ps := payment.NewService(payments, accounts)
 
 	handler := payment.MakeHandler(ps, httpLogger)
@@ -107,16 +108,119 @@ func TestPaymentApi(t *testing.T) {
 					"direction":  "outgoing",
 				},
 				{
-					"account":    "test2",
-					"amount":     55.55,
+					"account":      "test2",
+					"amount":       55.55,
 					"from_account": "test1",
-					"direction":  "incoming",
+					"direction":    "incoming",
 				},
 			},
+		},
+		{
+			Name:   "new payment:normal flow",
+			Path:   EndpointURL,
+			Method: http.MethodPost,
+			Payload: CaseRequestPayload{
+				"from":   account.ID("test1"),
+				"amount": decimal.NewFromFloat(33.33),
+				"to":     account.ID("test2"),
+			},
+			Status: http.StatusOK,
+			Result: CaseResponse{},
+		},
+		{
+			Name:   "new payment:incorrect decimal",
+			Path:   EndpointURL,
+			Method: http.MethodPost,
+			Payload: CaseRequestPayload{
+				"from":   account.ID("test1"),
+				"amount": "33,33",
+				"to":     account.ID("test2"),
+			},
+			Status: http.StatusInternalServerError,
+			Result: CaseResponse{"error": "Error decoding string '33,33': can't convert 33,33 to decimal"},
+		},
+		{
+			Name:   "new payment:validate account",
+			Path:   EndpointURL,
+			Method: http.MethodPost,
+			Payload: CaseRequestPayload{
+				"from":   account.ID("test1фыва"),
+				"amount": decimal.NewFromFloat(33.33),
+				"to":     account.ID("test2"),
+			},
+			Status: http.StatusNotAcceptable,
+			Result: CaseResponse{"error": "validation error: from: test1фыва does not validate as alphanum"},
+		},
+		{
+			Name:   "new payment:wrong source account",
+			Path:   EndpointURL,
+			Method: http.MethodPost,
+			Payload: CaseRequestPayload{
+				"from":   account.ID("test3"),
+				"amount": decimal.NewFromFloat(33.33),
+				"to":     account.ID("test2"),
+			},
+			Status: http.StatusNotFound,
+			Result: CaseResponse{"error": "unknown source account"},
+		},
+		{
+			Name:   "new payment:wrong target account",
+			Path:   EndpointURL,
+			Method: http.MethodPost,
+			Payload: CaseRequestPayload{
+				"from":   account.ID("test1"),
+				"amount": decimal.NewFromFloat(33.33),
+				"to":     account.ID("test3"),
+			},
+			Status: http.StatusNotFound,
+			Result: CaseResponse{"error": "unknown target account"},
+		},
+		{
+			Name:   "new payment:accounts the same",
+			Path:   EndpointURL,
+			Method: http.MethodPost,
+			Payload: CaseRequestPayload{
+				"from":   account.ID("test1"),
+				"amount": decimal.NewFromFloat(33.33),
+				"to":     account.ID("test1"),
+			},
+			Status: http.StatusNotAcceptable,
+			Result: CaseResponse{"error": "target account must not be equal to source account"},
+		},
+		{
+			Name:   "new payment:insufficient money",
+			Path:   EndpointURL,
+			Method: http.MethodPost,
+			Payload: CaseRequestPayload{
+				"from":   account.ID("test1"),
+				"amount": decimal.NewFromFloat(9999),
+				"to":     account.ID("test2"),
+			},
+			Status: http.StatusBadRequest,
+			Result: CaseResponse{"error": "insufficient money on source account"},
 		},
 	}
 
 	runTests(t, handler, cases, accounts)
+
+	t.Run("new payment:wrong json", func(t *testing.T) {
+		payload := `{ "a":1 `
+
+		req, err := http.NewRequest("POST", EndpointURL, strings.NewReader(payload))
+		OK(t, err)
+
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		if status := rr.Code; status != http.StatusInternalServerError {
+			t.Errorf("handler returned wrong status code: got %v want %v", status,
+				http.StatusInternalServerError)
+		}
+		expectedBody := `{"error":"unexpected EOF"}`
+		if strings.TrimSpace(rr.Body.String()) != expectedBody {
+			t.Errorf("handler returned wrong body: got %v want %v", rr.Body.String(), expectedBody)
+		}
+	})
 }
 
 func runTests(t *testing.T, handler http.Handler, cases []Case, repository account.Repository) {

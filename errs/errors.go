@@ -13,9 +13,9 @@ var (
 	ErrInvalidArgument      = errors.New("invalid argument")
 	ErrUnknownSourceAccount = errors.New("unknown source account")
 	ErrUnknownTargetAccount = errors.New("unknown target account")
+	ErrAccountsAreEqual     = errors.New("target account must not be equal to source account")
 	ErrInsufficientMoney    = errors.New("insufficient money on source account")
-	ErrStoreOutgoingPayment = errors.New("can not store outgoing payment")
-	ErrStoreIncomingPayment = errors.New("can not store incoming payment")
+	ErrStorePayments        = errors.New("can not store payments")
 	ErrStoreSourceAccount   = errors.New("can not update source account")
 	ErrStoreTargetAccount   = errors.New("can not update target account")
 	ErrBadRoute             = errors.New("bad route")
@@ -30,10 +30,6 @@ type ValidationError struct {
 // representing an error condition, with the nil value representing no error.
 func (e ValidationError) Error() string {
 	return "validation error: " + e.Err.Error()
-}
-
-func (e ValidationError) ErrError() error {
-	return e.Err
 }
 
 type errorer interface {
@@ -61,6 +57,8 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 		w.WriteHeader(http.StatusNotFound)
 	case ErrInvalidArgument, ErrInsufficientMoney:
 		w.WriteHeader(http.StatusBadRequest)
+	case ErrAccountsAreEqual:
+		w.WriteHeader(http.StatusNotAcceptable)
 	default:
 		switch err.(type) {
 		case ValidationError:

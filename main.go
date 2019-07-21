@@ -41,7 +41,7 @@ func main() {
 
 	var (
 		accounts = inmem.NewAccountRepository()
-		payments = inmem.NewPaymentRepository()
+		payments = inmem.NewPaymentRepository(accounts)
 	)
 
 	fieldKeys := []string{"method"}

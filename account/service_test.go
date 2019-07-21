@@ -168,7 +168,7 @@ func TestAccountApi(t *testing.T) {
 	t.Run("new account:wrong json", func(t *testing.T) {
 		payload := `{ "a":1 `
 
-		req, err := http.NewRequest("POST", "/api/accounts/v1/accounts", strings.NewReader(payload))
+		req, err := http.NewRequest("POST", EndpointURL, strings.NewReader(payload))
 		OK(t, err)
 
 		rr := httptest.NewRecorder()

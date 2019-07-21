@@ -45,6 +45,9 @@ type service struct {
 
 // New registers a new payment in the system.
 func (s *service) New(fromAccountID account.ID, amount decimal.Decimal, toAccountID account.ID) error {
+	if fromAccountID == toAccountID {
+		return errs.ErrAccountsAreEqual
+	}
 	from, err := s.accounts.Find(fromAccountID)
 	if err != nil {
 		return errs.ErrUnknownSourceAccount
@@ -52,50 +55,29 @@ func (s *service) New(fromAccountID account.ID, amount decimal.Decimal, toAccoun
 	if from.Balance.LessThan(amount) { // TODO: Balance need to be calculating property
 		return errs.ErrInsufficientMoney
 	}
-	to, err := s.accounts.Find(toAccountID)
+	_, err = s.accounts.Find(toAccountID)
 	if err != nil {
 		return errs.ErrUnknownTargetAccount
 	}
 
-	idOutgoing := uuid.New()
-	err = s.payments.Store(&Payment{
-		ID:        idOutgoing,
+	outgoingPayment := Payment{
+		ID:        uuid.New(),
 		Account:   fromAccountID,
 		Amount:    amount,
 		ToAccount: toAccountID,
 		Direction: Outgoing,
-	})
-	if err != nil {
-		_ = s.payments.MarkDeleted(idOutgoing)
-		return errs.ErrStoreOutgoingPayment
 	}
-
-	idIncoming := uuid.New()
-	err = s.payments.Store(&Payment{
-		ID:          idIncoming,
+	incomingPayment := Payment{
+		ID:          uuid.New(),
 		Account:     toAccountID,
 		Amount:      amount,
 		FromAccount: fromAccountID,
 		Direction:   Incoming,
-	})
-	if err != nil {
-		_ = s.payments.MarkDeleted(idOutgoing)
-		_ = s.payments.MarkDeleted(idIncoming)
-		return errs.ErrStoreIncomingPayment
 	}
-
-	from.Balance = from.Balance.Sub(amount)
-	err = s.accounts.Store(from)
+	err = s.payments.Store(&outgoingPayment, &incomingPayment)
 	if err != nil {
-		return errs.ErrStoreSourceAccount
+		return errs.ErrStorePayments
 	}
-
-	to.Balance = to.Balance.Add(amount)
-	err = s.accounts.Store(to)
-	if err != nil {
-		return errs.ErrStoreTargetAccount
-	}
-
 	return nil
 }
 
@@ -120,7 +102,7 @@ func NewService(payments Repository, accounts account.Repository) Service {
 // Repository interface for payment storing and operations.
 type Repository interface {
 	// Store payment in the repository.
-	Store(payment *Payment) error
+	Store(payment ...*Payment) error
 
 	// Find payments list for an account.
 	Find(id account.ID) []*Payment

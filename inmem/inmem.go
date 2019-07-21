@@ -73,14 +73,50 @@ func NewAccountRepository() account.Repository {
 type paymentRepository struct {
 	mtx      sync.RWMutex
 	payments map[uuid.UUID]*payment.Payment
+	accounts account.Repository
 }
 
 // Store payment in the repository.
-func (r *paymentRepository) Store(p *payment.Payment) error {
+func (r *paymentRepository) Store(args ...*payment.Payment) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.payments[p.ID] = p
+	for _, val := range args {
+		r.payments[val.ID] = val
+		a, err := r.accounts.Find(val.Account)
+		if err != nil {
+			return err
+		}
+
+		if val.ToAccount != "" {
+			to, err := r.accounts.Find(val.ToAccount)
+			if err != nil {
+				return err
+			}
+			a.Balance.Sub(val.Amount)
+			if err = r.accounts.Store(a); err != nil {
+				return err
+			}
+			to.Balance.Add(val.Amount)
+			if err = r.accounts.Store(to); err != nil {
+				return err
+			}
+		} else if val.FromAccount != "" {
+			from, err := r.accounts.Find(val.FromAccount)
+			if err != nil {
+				return err
+			}
+			a.Balance.Add(val.Amount)
+			if err = r.accounts.Store(a); err != nil {
+				return err
+			}
+			from.Balance.Sub(val.Amount)
+			if err = r.accounts.Store(from); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -112,7 +148,6 @@ func (r *paymentRepository) FindAll() []*payment.Payment {
 	return result
 }
 
-
 // MarkDeleted is mark as deleted specified payment in the system
 func (r *paymentRepository) MarkDeleted(id uuid.UUID) error {
 	r.mtx.Lock()
@@ -126,8 +161,9 @@ func (r *paymentRepository) MarkDeleted(id uuid.UUID) error {
 }
 
 // NewPaymentRepository returns a new instance of an in-memory payment repository.
-func NewPaymentRepository() payment.Repository {
+func NewPaymentRepository(accounts account.Repository) payment.Repository {
 	return &paymentRepository{
 		payments: make(map[uuid.UUID]*payment.Payment),
+		accounts: accounts,
 	}
 }
