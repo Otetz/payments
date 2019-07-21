@@ -49,7 +49,7 @@ func (s *service) New(fromAccountID account.ID, amount decimal.Decimal, toAccoun
 	if err != nil {
 		return errs.ErrUnknownSourceAccount
 	}
-	if from.Balance.LessThan(amount) {
+	if from.Balance.LessThan(amount) { // TODO: Balance need to be calculating property
 		return errs.ErrInsufficientMoney
 	}
 	to, err := s.accounts.Find(toAccountID)
@@ -57,25 +57,30 @@ func (s *service) New(fromAccountID account.ID, amount decimal.Decimal, toAccoun
 		return errs.ErrUnknownTargetAccount
 	}
 
+	idOutgoing := uuid.New()
 	err = s.payments.Store(&Payment{
-		ID:        uuid.New(),
+		ID:        idOutgoing,
 		Account:   fromAccountID,
 		Amount:    amount,
 		ToAccount: toAccountID,
 		Direction: Outgoing,
 	})
 	if err != nil {
+		_ = s.payments.MarkDeleted(idOutgoing)
 		return errs.ErrStoreOutgoingPayment
 	}
 
+	idIncoming := uuid.New()
 	err = s.payments.Store(&Payment{
-		ID:          uuid.New(),
+		ID:          idIncoming,
 		Account:     toAccountID,
 		Amount:      amount,
 		FromAccount: fromAccountID,
 		Direction:   Incoming,
 	})
 	if err != nil {
+		_ = s.payments.MarkDeleted(idOutgoing)
+		_ = s.payments.MarkDeleted(idIncoming)
 		return errs.ErrStoreIncomingPayment
 	}
 
@@ -122,4 +127,7 @@ type Repository interface {
 
 	// FindAll returns all payments, registered in the system.
 	FindAll() []*Payment
+
+	// MarkDeleted is mark as deleted specified payment in the system
+	MarkDeleted(id uuid.UUID) error
 }

@@ -57,7 +57,6 @@ func (r *accountRepository) MarkDeleted(id account.ID) error {
 	defer r.mtx.Unlock()
 
 	if _, ok := r.accounts[id]; ok {
-		//delete(r.accounts, id)
 		r.accounts[id].Deleted = true
 		return nil
 	}
@@ -111,6 +110,19 @@ func (r *paymentRepository) FindAll() []*payment.Payment {
 		}
 	}
 	return result
+}
+
+
+// MarkDeleted is mark as deleted specified payment in the system
+func (r *paymentRepository) MarkDeleted(id uuid.UUID) error {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	if _, ok := r.payments[id]; ok {
+		r.payments[id].Deleted = true
+		return nil
+	}
+	return errs.ErrUnknownAccount
 }
 
 // NewPaymentRepository returns a new instance of an in-memory payment repository.
