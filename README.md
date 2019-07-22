@@ -1,13 +1,36 @@
 Payments
 --------
 
+## Table of Contents
+
+<!-- TOC depthFrom:2 depthTo:6 updateOnSave:true withLinks:true -->
+
+- [Table of Contents](#table-of-contents)
+- [Project purpose](#project-purpose)
+- [Usage](#usage)
+    - [Command-line flags](#command-line-flags)
+- [Dependencies](#dependencies)
+- [How to set up](#how-to-set-up)
+    - [Step 1. Build docker image](#step-1-build-docker-image)
+    - [Step 2. Run it](#step-2-run-it)
+- [How to run tests](#how-to-run-tests)
+- [How to run code linting](#how-to-run-code-linting)
+- [How to Contribute](#how-to-contribute)
+    - [Support](#support)
+    - [What to contribute](#what-to-contribute)
+    - [Advice](#advice)
+
+<!-- /TOC -->
+
 ## Project purpose
 
 Payment system, provides ability to transfer money between accounts. 
 
-System provide reports: 
+System also provide reports: 
  - all registered accounts; 
  - all registered payments (transfers).
+
+API Documentation see [here](./docs/api.md)
 
 ## Usage
 
@@ -63,6 +86,30 @@ go test -race ./...
 golangci-lint run --presets=bugs,complexity,format
 ```
 
-## How to start contributing
+## How to Contribute
 
-TBA
+We definitely welcome patches and contribution to this project!
+
+### Support
+
+If you do have a contribution to the package, feel free to create a Pull Request or an Issue.
+
+### What to contribute
+
+If you don't know what to do, there are some features and functions that need to be done
+
+   - Refactor code
+   - Edit docs and README: spellcheck, grammar and typo check
+   - Create actual list of contributors and projects that currently using this package
+   - Resolve issues and bugs
+   - Implement benchmarking
+   - Implement batch of examples
+   - Look at forks for new features and fixes
+
+### Advice
+
+Feel free to create what you want, but keep in mind when you implement new features:
+
+  - Code must be clear and readable, names of variables/constants clearly describes what they are doing
+  - Public functions must be documented and described in source file
+  - There are must be unit-tests for any new functions and improvements
