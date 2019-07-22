@@ -1,0 +1,181 @@
+FORMAT: 1A
+HOST: http://0.0.0.0:8099/
+
+# payments
+
+Payment system, provides ability to transfer money between accounts. 
+
+System also provide reports: 
+ - all registered accounts; 
+ - all registered payments (transfers).
+
+## Accounts Collection [/api/accounts/v1/accounts]
+
+### List All Accounts [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "id": "alice456",
+                "balance": 999.99,
+                "currency": "USD"
+            },
+            {
+                "id": "bob123",
+                "balance": 87.78,
+                "currency": "USD"
+            }
+        ]
+
+### Create a New Account [POST]
+
+You may create new account using this action. It takes a JSON
+object containing an id, initial balance and currency.
+
++ Request (application/json)
+
+        {
+            "id": "john789",
+            "balance": 55.00,
+            "currency": "USD"
+        }
+
++ Response 200 (application/json)
+
+        {}
+
++ Response 406 (application/json)
+
+        {
+            "error": "validation error message"
+        }
+
++ Response 500 (application/json)
+
+        {
+            "error": "error message"
+        }
+
+## Account [/api/accounts/v1/accounts/{account_id}]
+
++ Parameters
+    + account_id (string) - ID of the Account in the form of an alphanumeric string [a-zA-Z0-9]
+
+### Get account by ID [GET]
+    
++ Response 200 (application/json)
+
+        {
+            "account":
+            {
+                "id": "alice456",
+                "balance": 999.99,
+                "currency": "USD"
+            }
+        }
+
++ Response 404 (application/json)
+
+        {
+            "error": "unknown account"
+        }
+
+### Delete account by ID [DELETE]
+
++ Response 200 (application/json)
+
+        {}
+
++ Response 404 (application/json)
+
+        {
+            "error": "unknown account"
+        }
+
+## Payments collection [/api/payments/v1/payments]
+
+### List All Payments [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "account": "bob123",
+                "amount": 12.34, 
+                "to_account": "alice456", 
+                "direction": "outgoing"
+            },
+            {
+                "account": "alice456", 
+                "amount": 12.34, 
+                "from_account": "bob123", 
+                "direction": "incoming"
+            }
+        ]
+
+### Create a New Peyment [POST]
+
+You may create new payment using this action. It takes a JSON
+object containing an from [account ID], amount of transferring 
+money and to [account ID].
+
++ Request (application/json)
+
+        {
+            "from": "bob123",
+            "amount": 12.34,
+            "to": "alice456"
+        }
+
++ Response 200 (application/json)
+
+        {}
+
++ Response 400 (application/json)
+
+        {
+            "error": "insufficient money on source account"
+        }
+
++ Response 404 (application/json)
+
+        {
+            "error": "unknown account"
+        }
+
++ Response 406 (application/json)
+
+        {
+            "error": "validation error message"
+        }
+
++ Response 500 (application/json)
+
+        {
+            "error": "error message"
+        }
+
+## Payments by Account [/api/payments/v1/payments/{account_id}]
+
++ Parameters
+    + account_id (string) - ID of the Account in the form of an alphanumeric string [a-zA-Z0-9]
+
+### Get payments for Account [GET]
+    
++ Response 200 (application/json)
+
+        [
+            {
+                "account": "bob123",
+                "amount": 12.34, 
+                "to_account": "alice456", 
+                "direction": "outgoing"
+            }
+        ]
+
++ Response 500 (application/json)
+
+        {
+            "error": "error message"
+        }
